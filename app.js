@@ -109,7 +109,7 @@ const TARGETS = [
   {id:"skin",  label:"Piel", hint:"Mejilla o frente, sin brillo ni sombra.", r:0.006},
   {id:"eyes",  label:"Ojos", hint:"El iris, lejos de la pupila y del reflejo de luz.", r:0.0018},
   {id:"hair",  label:"Pelo", hint:"Un mechón con luz pareja, mejor cerca de la raíz.", r:0.007},
-  {id:"white", label:"Algo blanco (opcional)", hint:"Remera, hoja o pared. Corrige el color de la luz.", r:0.006}
+  {id:"white", label:"Blanco", opt:true, hint:"Remera, hoja o pared. Corrige el color de la luz.", r:0.006}
 ];
 
 /* ---------- Estado ---------- */
@@ -201,7 +201,7 @@ function sampleAt(x,y,rad){
   return [med(R),med(G),med(B)];
 }
 
-view.addEventListener("pointermove",ev=>{
+function showLoupe(ev){
   if(!S.work) return;
   const c=imgCoords(ev), z=8, src=120/z;
   lctx.imageSmoothingEnabled=false;
@@ -211,14 +211,18 @@ view.addEventListener("pointermove",ev=>{
   lctx.strokeStyle="#fff"; lctx.lineWidth=2; lctx.beginPath(); lctx.arc(60,60,Math.min(rr,56),0,Math.PI*2); lctx.stroke();
   lctx.strokeStyle="rgba(0,0,0,.6)"; lctx.lineWidth=1; lctx.beginPath(); lctx.moveTo(60,52);lctx.lineTo(60,68);lctx.moveTo(52,60);lctx.lineTo(68,60);lctx.stroke();
   let lx=c.px+18, ly=c.py-138;
-  if(lx+120>c.rw) lx=c.px-138; if(ly<0) ly=c.py+18;
-  loupe.style.left=lx+"px"; loupe.style.top=ly+"px"; loupe.style.display="block";
-});
+  if(lx+120>c.rw) lx=c.px-138; if(ev.pointerType!=="mouse"){ lx=c.px-60; ly=c.py-150; } if(ly<0) ly=c.py+40;
+  loupe.style.left=(lx+view.offsetLeft)+"px"; loupe.style.top=ly+"px"; loupe.style.display="block";
+}
+view.addEventListener("pointermove",showLoupe);
+view.addEventListener("pointerdown",ev=>{ showLoupe(ev); if(ev.pointerType!=="mouse") view.setPointerCapture(ev.pointerId); });
 view.addEventListener("pointerleave",()=>loupe.style.display="none");
+view.addEventListener("pointercancel",()=>loupe.style.display="none");
 view.addEventListener("pointerup",ev=>{
   if(!S.work) return;
   if(ev.pointerType!=="mouse") loupe.style.display="none";
   const c=imgCoords(ev), id=S.active;
+  c.x=clamp(c.x,0,S.W-1); c.y=clamp(c.y,0,S.H-1);
   S.pts[id]={x:c.x,y:c.y};
   S.rgb[id]=sampleAt(c.x,c.y,radiusFor(id));
   const next=["skin","eyes","hair"].find(k=>!S.pts[k] && !(k==="hair" && S.dyed==="no"));
@@ -232,14 +236,14 @@ function renderTargets(){
   TARGETS.forEach(t=>{
     const b=document.createElement("button"); b.type="button"; b.className="target"+(S.active===t.id?" active":"");
     b.setAttribute("aria-pressed",S.active===t.id);
-    const set=!!S.rgb[t.id];
-    const skipHair = t.id==="hair" && S.dyed==="no";
-    b.innerHTML=`<span class="dot${set?" set":""}" style="${set?"background:"+hex(S.rgb[t.id]):""}"></span>
-      <span><strong>${t.label}</strong><small>${skipHair?"No hace falta: usamos tu color natural.":t.hint}</small></span>
-      <span class="state">${S.active===t.id?"Tocá la foto":(set?"Listo ✓":"")}</span>`;
+    const set=!!S.rgb[t.id], skipHair=t.id==="hair" && S.dyed==="no";
+    const state= S.active===t.id ? "Midiendo ahora" : set ? "Listo ✓" : skipHair ? "No hace falta" : (t.opt?"Opcional":"Falta");
+    b.innerHTML=`<span class="dot${set?" set":""}" style="${set?"background:"+hex(S.rgb[t.id]):""}"></span><span><strong>${t.label}</strong><small>${state}</small></span>`;
     b.addEventListener("click",()=>{ S.active=t.id; renderTargets(); });
     box.appendChild(b);
   });
+  const t=TARGETS.find(x=>x.id===S.active);
+  $("targetHint").innerHTML=`<b>${t.label}${t.opt?" (opcional)":""}:</b> ${t.id==="hair"&&S.dyed==="no"?"No hace falta: usamos tu color natural.":t.hint}`;
 }
 
 /* Preguntas */
