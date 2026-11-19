@@ -1,4 +1,6 @@
-# Tu paleta de color
+# Colorimetría Express
+
+https://colorimetria-express.vercel.app
 
 Análisis de color personal según el sistema de las 12 estaciones. La persona sube una foto, marca piel, ojos y pelo, y obtiene su estación, su paleta, neutros, colores para evitar, combinaciones y una prueba de colores sobre su cara.
 

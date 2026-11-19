@@ -1,6 +1,6 @@
 {
-  "name": "Tu paleta de color",
-  "short_name": "Tu paleta",
+  "name": "Colorimetría Express",
+  "short_name": "Colorimetría",
   "description": "Te decimos cuál es tu look: tu estación de color y recomendaciones de ropa y colores.",
   "lang": "es-AR",
   "start_url": "/",

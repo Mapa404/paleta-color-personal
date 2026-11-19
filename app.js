@@ -462,7 +462,7 @@ async function makePDF(){
     const isTop=S.result && S.result.ranked[0].s.id===s.id;
 
     // Encabezado
-    text("TU PALETA DE COLOR · ANÁLISIS DE COLOR PERSONAL",8,"bold",muted); y+=3;
+    text("COLORIMETRÍA EXPRESS · ANÁLISIS DE COLOR PERSONAL",8,"bold",muted); y+=3;
     text(isTop? "Tu estación es" : "Estación explorada",10,"normal",muted); y+=1;
     text(s.name,26,"bold"); y+=2;
     const fecha=new Date().toLocaleDateString("es-AR",{day:"numeric",month:"long",year:"numeric"});
@@ -530,7 +530,7 @@ async function makePDF(){
     // Nota
     need(16); doc.setDrawColor(231,224,214); doc.line(M,y,W-M,y); y+=4;
     text("El resultado es una orientación, no un diagnóstico profesional. La cámara, la pantalla y la luz alteran los colores. Este PDF se generó en tu dispositivo: la foto no se envió a ningún servidor.",8,"normal",muted);
-    text("paleta-color.vercel.app",8,"normal",muted);
+    text("colorimetria-express.vercel.app",8,"normal",muted);
 
     const slug=s.name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g,"-");
     doc.save("mi-paleta-"+slug+".pdf");
