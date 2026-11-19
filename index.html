@@ -156,6 +156,10 @@
     .drop{padding:32px 16px}
     .privacy{display:block;border-radius:12px;font-size:.85rem}
   }
+  .site-footer{border-top:1px solid var(--line);margin-top:8px;padding:24px 20px calc(28px + env(safe-area-inset-bottom));text-align:center;font-size:.9rem;color:var(--muted)}
+  .site-footer a{color:var(--ink);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+  .site-footer a:hover{color:var(--accent)}
+  .site-footer a:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
   dialog#privacy{border:none;border-radius:20px;padding:0;max-width:560px;width:calc(100% - 32px);box-shadow:0 20px 60px rgba(31,27,22,.25);color:var(--ink)}
   dialog#privacy::backdrop{background:rgba(31,27,22,.45)}
   .modal{padding:28px}
@@ -351,6 +355,9 @@
     </div>
   </section>
 </div>
+<footer class="site-footer">
+  Hecho por Mapa Bianchi · <a href="https://mapabianchi.online" target="_blank" rel="noopener">mapabianchi.online</a>
+</footer>
 <dialog id="privacy" aria-labelledby="privT">
   <div class="modal">
     <h2 id="privT">Tus datos se quedan con vos</h2>
