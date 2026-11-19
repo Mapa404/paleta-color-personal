@@ -394,5 +394,130 @@ $("copy").addEventListener("click",async()=>{
   catch(e){ toast("No se pudo copiar en este navegador"); }
 });
 
+/* ---------- Modal de privacidad ---------- */
+const dlg=$("privacy");
+function openPrivacy(){ try{ dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); } }
+$("openPrivacy").addEventListener("click",openPrivacy);
+$("closePrivacy").addEventListener("click",()=>dlg.close ? dlg.close() : dlg.removeAttribute("open"));
+openPrivacy();
+
+/* ---------- PDF ---------- */
+let jsPDFReady=null;
+function loadJsPDF(){
+  if(window.jspdf) return Promise.resolve();
+  if(!jsPDFReady) jsPDFReady=new Promise((res,rej)=>{
+    const sc=document.createElement("script"); sc.src="vendor/jspdf.umd.min.js";
+    sc.onload=res; sc.onerror=()=>{ jsPDFReady=null; rej(); }; document.head.appendChild(sc);
+  });
+  return jsPDFReady;
+}
+const rgbOf=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+const lum=h=>{ const [r,g,b]=rgbOf(h); return (0.299*r+0.587*g+0.114*b)/255; };
+
+function faceImage(frameHex){
+  if(!S.work) return null;
+  const src=$("drapeCv"), c=document.createElement("canvas"), N=500, pad=40;
+  c.width=c.height=N; const x=c.getContext("2d");
+  x.fillStyle=frameHex; x.fillRect(0,0,N,N);
+  x.save(); x.beginPath(); x.arc(N/2,N/2,N/2-pad,0,Math.PI*2); x.clip();
+  x.drawImage(src,pad,pad,N-2*pad,N-2*pad); x.restore();
+  return c.toDataURL("image/jpeg",0.9);
+}
+
+async function makePDF(){
+  const s=S.shown; if(!s) return;
+  const btn=$("pdf"); btn.disabled=true; btn.textContent="Armando el PDF…";
+  try{
+    await loadJsPDF();
+    const { jsPDF }=window.jspdf, doc=new jsPDF({unit:"mm",format:"a4"});
+    const W=210, M=16, CW=W-2*M; let y=M;
+    const ink=[31,27,22], muted=[107,98,89];
+    const need=h=>{ if(y+h>297-M){ doc.addPage(); y=M; } };
+    const text=(t,size,style,color,maxW)=>{
+      doc.setFont("helvetica",style||"normal"); doc.setFontSize(size); doc.setTextColor(...(color||ink));
+      const lines=doc.splitTextToSize(t,maxW||CW); const lh=size*0.42;
+      need(lines.length*lh); doc.text(lines,M,y+size*0.32); y+=lines.length*lh; return lines.length*lh;
+    };
+    const isTop=S.result && S.result.ranked[0].s.id===s.id;
+
+    // Encabezado
+    text("TU PALETA DE COLOR · ANÁLISIS DE COLOR PERSONAL",8,"bold",muted); y+=3;
+    text(isTop? "Tu estación es" : "Estación explorada",10,"normal",muted); y+=1;
+    text(s.name,26,"bold"); y+=2;
+    const fecha=new Date().toLocaleDateString("es-AR",{day:"numeric",month:"long",year:"numeric"});
+    text(s.family+" · "+fecha,9,"normal",muted); y+=6;
+
+    // Foto + descripción
+    const img=faceImage(s.colors[0][0]);
+    const top=y;
+    if(img){ doc.addImage(img,"JPEG",M,y,48,48); }
+    const tx=img? M+56 : M, tw=img? CW-56 : CW;
+    doc.setFont("helvetica","normal"); doc.setFontSize(10.5); doc.setTextColor(...ink);
+    const dl=doc.splitTextToSize(s.desc,tw); doc.text(dl,tx,y+4); let yy=y+4+dl.length*4.6+4;
+    if(S.result){
+      [["Frío","Cálido",S.result.T],["Claro","Profundo",S.result.D],["Suave","Brillante",S.result.C]].forEach(([a,b,v])=>{
+        doc.setFontSize(8); doc.setTextColor(...muted); doc.text(a,tx,yy); doc.text(b,tx+tw,yy,{align:"right"});
+        doc.setFillColor(231,224,214); doc.roundedRect(tx,yy+1.5,tw,1.8,0.9,0.9,"F");
+        const px=tx+(v+1)/2*tw; doc.setFillColor(255,255,255); doc.setDrawColor(...ink); doc.setLineWidth(0.6); doc.circle(px,yy+2.4,1.8,"FD");
+        yy+=9;
+      });
+    }
+    y=Math.max(yy,top+(img?48:0))+8;
+
+    // Grillas de colores
+    const grid=(title,arr,cross)=>{
+      const cols=6, gap=3, sw=(CW-gap*(cols-1))/cols, sh=16, rows=Math.ceil(arr.length/cols);
+      need(8+rows*(sh+11)); text(title,12,"bold"); y+=3;
+      arr.forEach(([h,n],i)=>{
+        const cx=M+(i%cols)*(sw+gap), cy=y+Math.floor(i/cols)*(sh+11);
+        doc.setFillColor(...rgbOf(h)); doc.setDrawColor(220,214,205); doc.setLineWidth(0.2); doc.roundedRect(cx,cy,sw,sh,2,2,"FD");
+        if(cross){ doc.setDrawColor(...(lum(h)>0.6?[120,110,100]:[255,255,255])); doc.setLineWidth(0.6); doc.line(cx+2,cy+sh-2,cx+sw-2,cy+2); }
+        doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(...ink);
+        doc.text(doc.splitTextToSize(n,sw)[0],cx,cy+sh+3.6);
+        doc.setFontSize(6.5); doc.setTextColor(...muted); doc.text(h,cx,cy+sh+7);
+      });
+      y+=rows*(sh+11)+4;
+    };
+    grid("Tu paleta",s.colors);
+    grid("Neutros (la base del placard)",s.neutrals);
+    grid("Colores para evitar cerca de la cara",s.avoid,true);
+
+    // Combinaciones
+    const c=s.colors, n=s.neutrals;
+    const combos=[[[n[2][0],c[0][0],n[0][0]],"Diario"],[[n[3][0],c[7][0],c[3][0]],"Con acento"],[[c[5][0],c[9][0],n[1][0]],"Para salir"],[[n[0][0],c[1][0],c[2][0]],"Tono sobre tono"]];
+    need(34); text("Combinaciones para empezar",12,"bold"); y+=3;
+    const cw=(CW-9)/4;
+    combos.forEach(([cols,lbl],i)=>{
+      const cx=M+i*(cw+3); let ox=cx; const parts=[2,1,1], unit=cw/4;
+      cols.forEach((h,j)=>{ doc.setFillColor(...rgbOf(h)); doc.rect(ox,y,unit*parts[j],12,"F"); ox+=unit*parts[j]; });
+      doc.setDrawColor(220,214,205); doc.setLineWidth(0.2); doc.rect(cx,y,cw,12);
+      doc.setFontSize(8); doc.setTextColor(...muted); doc.text(lbl,cx,y+16);
+    });
+    y+=24;
+
+    // Consejos
+    const list=(title,items)=>{
+      need(14); text(title,12,"bold"); y+=2;
+      items.forEach(t=>{ doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(...ink);
+        const l=doc.splitTextToSize(t,CW-5); need(l.length*4.4+1.5); doc.text("•",M,y+3.2); doc.text(l,M+5,y+3.2); y+=l.length*4.4+1.5; });
+      y+=4;
+    };
+    list("Ropa y estilo",s.tips);
+    list("Accesorios",s.acc);
+
+    // Nota
+    need(16); doc.setDrawColor(231,224,214); doc.line(M,y,W-M,y); y+=4;
+    text("El resultado es una orientación, no un diagnóstico profesional. La cámara, la pantalla y la luz alteran los colores. Este PDF se generó en tu dispositivo: la foto no se envió a ningún servidor.",8,"normal",muted);
+    text("paleta-color.vercel.app",8,"normal",muted);
+
+    const slug=s.name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g,"-");
+    doc.save("mi-paleta-"+slug+".pdf");
+    toast("PDF descargado");
+  }catch(e){
+    console.error(e); toast("No se pudo generar el PDF. Probá de nuevo.");
+  }finally{ btn.disabled=false; btn.textContent="Descargar PDF"; }
+}
+$("pdf").addEventListener("click",makePDF);
+
 renderTargets();
 })();

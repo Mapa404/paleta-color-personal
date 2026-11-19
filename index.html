@@ -103,12 +103,21 @@
   .hidden{display:none !important}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-size:.9rem;opacity:0;transition:opacity .2s;pointer-events:none}
   .toast.show{opacity:1}
+  dialog#privacy{border:none;border-radius:20px;padding:0;max-width:560px;width:calc(100% - 32px);box-shadow:0 20px 60px rgba(31,27,22,.25);color:var(--ink)}
+  dialog#privacy::backdrop{background:rgba(31,27,22,.45)}
+  .modal{padding:28px}
+  .modal h2{margin-bottom:8px}
+  .modal ul{margin:12px 0 16px;padding-left:1.1rem}
+  .modal li{margin-bottom:8px}
+  .modal .fine{font-size:.82rem;color:var(--muted);margin-bottom:20px}
+  .linkbtn{appearance:none;background:none;border:none;padding:0;font:inherit;color:inherit;text-decoration:underline;cursor:pointer}
+  .save{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="hero">
-    <span class="privacy">🔒 Tu foto no sale de este dispositivo. No se sube ni se guarda nada.</span>
+    <span class="privacy">🔒 Tu foto no sale de este dispositivo. <button type="button" class="linkbtn" id="openPrivacy">Cómo cuidamos tus datos</button></span>
     <h1>Tu paleta de color</h1>
     <p class="lead">Un análisis de color personal según el sistema de las 12 estaciones. Con una foto y tres toques sobre tu piel, tus ojos y tu pelo, te mostramos qué colores te favorecen y cómo combinarlos al vestirte.</p>
   </header>
@@ -267,8 +276,29 @@
       <div class="chips" id="all"></div>
       <p class="note">El resultado es una orientación, no un diagnóstico profesional. La cámara, la pantalla y la luz alteran los colores. Si dudás entre dos estaciones, la prueba de colores en tu cara es lo que más vale: probá la paleta de cada una frente a un espejo con ropa real.</p>
     </div>
+    <div class="card save">
+      <div>
+        <h3 style="margin:0">Guardar tu resultado</h3>
+        <p class="hint" style="margin:4px 0 0">Un PDF con tu estación, la paleta, los neutros, los colores para evitar y los consejos. Se arma en tu dispositivo.</p>
+      </div>
+      <button class="btn" id="pdf" type="button">Descargar PDF</button>
+    </div>
   </section>
 </div>
+<dialog id="privacy" aria-labelledby="privT">
+  <div class="modal">
+    <h2 id="privT">Tus datos se quedan con vos</h2>
+    <p>Antes de empezar, esto es lo que pasa con tu foto y tu información:</p>
+    <ul>
+      <li><b>La foto no se sube a ningún lado.</b> Se analiza dentro de tu navegador, en este dispositivo.</li>
+      <li><b>No guardamos nada.</b> Ni la foto, ni los colores que marcás, ni tus respuestas. No usamos cuentas, cookies ni almacenamiento local.</li>
+      <li><b>Se borra al salir.</b> Al cerrar la página o tocar “Empezar de nuevo”, todo desaparece.</li>
+      <li><b>El PDF es tuyo.</b> Se genera en tu dispositivo y solo lo tenés vos.</li>
+    </ul>
+    <p class="fine">Las tipografías se cargan desde Google Fonts y el sitio está alojado en Vercel. Como en cualquier web, esos servicios pueden registrar datos técnicos de la visita (por ejemplo, la dirección IP), pero nunca reciben tu foto ni tus resultados.</p>
+    <button class="btn" id="closePrivacy" type="button" autofocus>Entendido</button>
+  </div>
+</dialog>
 <div class="toast" id="toast" role="status"></div>
 
 <script src="app.js"></script>

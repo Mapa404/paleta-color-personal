@@ -8,3 +8,7 @@ Análisis de color personal según el sistema de las 12 estaciones. La persona s
 ## Correr en local
 
 Abrir `index.html` en el navegador o servir la carpeta con cualquier servidor estático.
+
+## Dependencias
+
+- `vendor/jspdf.umd.min.js`: [jsPDF](https://github.com/parallax/jsPDF) 2.5.2 (licencia MIT, ver `vendor/jspdf-LICENSE.txt`), para generar el PDF del resultado en el navegador. Está incluida en el repo para no depender de CDNs externos.
