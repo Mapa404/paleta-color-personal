@@ -73,10 +73,17 @@
   .tip b{display:block;margin-bottom:2px}
   .grid2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;align-items:start}
   @media (max-width:820px){.grid2{grid-template-columns:1fr}}
-  .photo{position:relative;touch-action:none}
+  .photo{position:relative;touch-action:manipulation}
   .photo{display:flex;justify-content:center}
   .photo canvas#view{display:block;max-width:100%;max-height:62vh;width:auto;height:auto;cursor:crosshair;border-radius:12px;background:#EEE}
-  #loupe{position:absolute;width:120px;height:120px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.35);pointer-events:none;display:none}
+  .photo-hint{text-align:center;margin:8px 0 0}
+  .zoom{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center;margin-top:12px;padding:14px;border:1px solid var(--accent);background:var(--accent-soft);border-radius:14px}
+  .zoom[hidden]{display:none}
+  .zoom canvas{width:150px;height:150px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(31,27,22,.15);cursor:crosshair;touch-action:manipulation;display:block}
+  .zoom-title{display:flex;align-items:center;gap:8px;margin:0 0 6px}
+  .zsw{width:22px;height:22px;border-radius:50%;border:1px solid rgba(0,0,0,.15);flex:none}
+  .zoom-next{grid-column:1/-1;width:100%}
+  @media (max-width:380px){.zoom{grid-template-columns:120px 1fr}.zoom canvas{width:120px;height:120px}}
   .targets{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 6px}
   .target{display:flex;gap:10px;align-items:center;text-align:left;width:100%;min-height:52px;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 10px;cursor:pointer;font:inherit;color:inherit}
   .target.active{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
@@ -135,7 +142,9 @@
   .hidden{display:none !important}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-size:.9rem;opacity:0;transition:opacity .2s;pointer-events:none}
   .toast.show{opacity:1}
-  .sticky-cta{position:sticky;bottom:0;z-index:5;background:var(--surface);margin:16px -24px -24px;padding:12px 24px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);border-radius:0 0 var(--radius) var(--radius)}
+  .sticky-cta{position:static;bottom:0;z-index:5;background:var(--surface);margin:16px -24px -24px;padding:12px 24px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);border-radius:0 0 var(--radius) var(--radius)}
+  .sticky-cta.ready{position:sticky}
+  .zoom{scroll-margin:90px 0 110px}
   .seg button,.chip{min-height:44px}
   .btn{min-height:48px}
   @media (max-width:640px){
@@ -221,14 +230,22 @@
 
   <section class="card hidden" id="s2" aria-labelledby="s2t">
     <h2 id="s2t">Marcar tus colores</h2>
-    <p class="hint">Elegís qué medir y tocás ese punto en la foto. En el celular podés apoyar el dedo, moverlo mirando la lupa y soltarlo donde quieras medir.</p>
+    <p class="hint">Son tres toques: piel, ojos y pelo. Después de cada uno aparece una vista ampliada para chequear que el círculo quedó en el lugar justo.</p>
     <div class="grid2">
       <div>
         <div class="targets" id="targets" role="group" aria-label="Qué medir"></div>
         <p class="target-hint" id="targetHint" aria-live="polite"></p>
         <div class="photo" id="photo">
           <canvas id="view" aria-label="Tu foto. Tocá sobre ella para tomar el color seleccionado."></canvas>
-          <canvas id="loupe" width="120" height="120" aria-hidden="true"></canvas>
+        </div>
+        <p class="hint photo-hint" id="photoHint" aria-live="polite"></p>
+        <div class="zoom" id="zoom" hidden>
+          <canvas id="zoomCv" width="360" height="360" aria-label="Vista ampliada del punto marcado. Un toque acá ajusta el punto."></canvas>
+          <div class="zoom-info">
+            <p class="zoom-title"><span class="zsw" id="zSw"></span><b id="zTitle"></b></p>
+            <p class="hint" id="zText" style="margin:0"></p>
+          </div>
+          <button class="btn zoom-next" id="zNext" type="button"></button>
         </div>
         <div class="actions" style="margin-top:12px">
           <button class="btn ghost" id="changePhoto" type="button">Cambiar foto</button>

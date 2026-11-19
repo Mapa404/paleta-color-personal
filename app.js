@@ -106,10 +106,10 @@ const NATURAL_HAIR = [
 ];
 
 const TARGETS = [
-  {id:"skin",  label:"Piel", hint:"Mejilla o frente, sin brillo ni sombra.", r:0.006},
-  {id:"eyes",  label:"Ojos", hint:"El iris, lejos de la pupila y del reflejo de luz.", r:0.0018},
-  {id:"hair",  label:"Pelo", hint:"Un mechón con luz pareja, mejor cerca de la raíz.", r:0.007},
-  {id:"white", label:"Blanco", opt:true, hint:"Remera, hoja o pared. Corrige el color de la luz.", r:0.006}
+  {id:"skin",  label:"Piel", hint:"Un toque sobre la mejilla o la frente, donde no haya brillo ni sombra.", r:0.006},
+  {id:"eyes",  label:"Ojos", hint:"Un toque sobre el iris, la parte de color del ojo. Después lo ajustás en la vista ampliada.", r:0.0018},
+  {id:"hair",  label:"Pelo", hint:"Un toque sobre un mechón con luz pareja, mejor cerca de la raíz.", r:0.007},
+  {id:"white", label:"Blanco", opt:true, hint:"Un toque sobre algo blanco (remera, hoja o pared). Sirve para corregir el color de la luz.", r:0.006}
 ];
 
 /* ---------- Estado ---------- */
@@ -153,7 +153,7 @@ function loadFile(f){
     Object.assign(S,{work:c,wctx:ctx,W,H,pts:{},rgb:{},active:"skin",result:null});
     const v=$("view"); v.width=W; v.height=H;
     file.value="";
-    redraw(); renderTargets(); updateReady();
+    redraw(); renderTargets(); updateReady(); renderZoom();
     $("s1").classList.add("hidden"); $("s3").classList.add("hidden"); $("s2").classList.remove("hidden");
     setStep(2); $("s2").scrollIntoView({behavior:"smooth",block:"start"});
   };
@@ -162,7 +162,7 @@ function loadFile(f){
 }
 
 /* ---------- Paso 2: marcar ---------- */
-const view=$("view"), vctx=view.getContext("2d"), loupe=$("loupe"), lctx=loupe.getContext("2d");
+const view=$("view"), vctx=view.getContext("2d");
 
 function radiusFor(id){ const t=TARGETS.find(t=>t.id===id); return Math.max(2,Math.round(t.r*Math.max(S.W,S.H))); }
 
@@ -174,7 +174,7 @@ function redraw(){
     const p=S.pts[t.id]; if(!p) return;
     const r=Math.max(radiusFor(t.id),6*k);
     vctx.lineWidth=4*k; vctx.strokeStyle="#fff"; vctx.beginPath(); vctx.arc(p.x,p.y,r,0,Math.PI*2); vctx.stroke();
-    vctx.lineWidth=1.8*k; vctx.strokeStyle="#1F1B16"; vctx.stroke();
+    vctx.lineWidth=(t.id===S.active?3:1.8)*k; vctx.strokeStyle=t.id===S.active?"#6B3E5E":"#1F1B16"; vctx.stroke();
     vctx.font=`600 ${13*k}px Inter, sans-serif`; vctx.textBaseline="middle";
     const label=t.label.split(" ")[0], tw=vctx.measureText(label).width, px=p.x+r+6*k, py=p.y;
     vctx.fillStyle="rgba(31,27,22,.85)"; vctx.beginPath();
@@ -201,34 +201,56 @@ function sampleAt(x,y,rad){
   return [med(R),med(G),med(B)];
 }
 
-function showLoupe(ev){
-  if(!S.work) return;
-  const c=imgCoords(ev), z=8, src=120/z;
-  lctx.imageSmoothingEnabled=false;
-  lctx.fillStyle="#ddd"; lctx.fillRect(0,0,120,120);
-  lctx.drawImage(S.work,c.x-src/2,c.y-src/2,src,src,0,0,120,120);
-  const rr=radiusFor(S.active)*z;
-  lctx.strokeStyle="#fff"; lctx.lineWidth=2; lctx.beginPath(); lctx.arc(60,60,Math.min(rr,56),0,Math.PI*2); lctx.stroke();
-  lctx.strokeStyle="rgba(0,0,0,.6)"; lctx.lineWidth=1; lctx.beginPath(); lctx.moveTo(60,52);lctx.lineTo(60,68);lctx.moveTo(52,60);lctx.lineTo(68,60);lctx.stroke();
-  let lx=c.px+18, ly=c.py-138;
-  if(lx+120>c.rw) lx=c.px-138; if(ev.pointerType!=="mouse"){ lx=c.px-60; ly=c.py-150; } if(ly<0) ly=c.py+40;
-  loupe.style.left=(lx+view.offsetLeft)+"px"; loupe.style.top=ly+"px"; loupe.style.display="block";
+const ORDER=["skin","eyes","hair","white"];
+const WHAT={skin:"tu piel, sin brillo ni sombra",eyes:"el iris (la parte de color del ojo)",hair:"un mechón de pelo",white:"algo blanco"};
+const zoomCv=$("zoomCv"), zctx=zoomCv.getContext("2d");
+function zoomSrc(id){ return Math.max(radiusFor(id)*12, 28); }
+function needed(id){ return !(id==="hair" && S.dyed==="no"); }
+function nextTarget(){
+  const i=ORDER.indexOf(S.active);
+  return ORDER.slice(i+1).concat(ORDER.slice(0,i)).find(k=>!S.pts[k] && needed(k) && k!=="white") || (!S.pts.white && S.active!=="white" ? "white" : null);
 }
-view.addEventListener("pointermove",showLoupe);
-view.addEventListener("pointerdown",ev=>{ showLoupe(ev); if(ev.pointerType!=="mouse") view.setPointerCapture(ev.pointerId); });
-view.addEventListener("pointerleave",()=>loupe.style.display="none");
-view.addEventListener("pointercancel",()=>loupe.style.display="none");
-view.addEventListener("pointerup",ev=>{
+function renderZoom(){
+  const id=S.active, p=S.pts[id], box=$("zoom");
+  if(!p){ box.hidden=true; return; }
+  box.hidden=false;
+  const N=zoomCv.width, src=zoomSrc(id), k=N/src;
+  zctx.imageSmoothingEnabled=true; zctx.fillStyle="#ddd"; zctx.fillRect(0,0,N,N);
+  zctx.drawImage(S.work,p.x-src/2,p.y-src/2,src,src,0,0,N,N);
+  const r=Math.max(radiusFor(id)*k,10);
+  zctx.lineWidth=6; zctx.strokeStyle="#fff"; zctx.beginPath(); zctx.arc(N/2,N/2,r,0,Math.PI*2); zctx.stroke();
+  zctx.lineWidth=2.5; zctx.strokeStyle="#1F1B16"; zctx.stroke();
+  const t=TARGETS.find(x=>x.id===id);
+  $("zSw").style.background=hex(S.rgb[id]);
+  $("zTitle").textContent=t.label+": color medido";
+  $("zText").textContent=`Si el círculo no quedó sobre ${WHAT[id]}, tocás el punto exacto acá o en la foto.`;
+  const nx=nextTarget(), btn=$("zNext");
+  const ready=!$("analyze").disabled;
+  if(nx && !(nx==="white" && ready)){ btn.textContent="Seguir con "+TARGETS.find(x=>x.id===nx).label.toLowerCase(); btn.dataset.go=nx; }
+  else if(ready){ btn.textContent="Ver mi paleta"; btn.dataset.go="analyze"; }
+  else { btn.textContent="Revisar lo que falta"; btn.dataset.go="missing"; }
+}
+function placePoint(id,x,y){
+  x=clamp(x,0,S.W-1); y=clamp(y,0,S.H-1);
+  S.pts[id]={x,y}; S.rgb[id]=sampleAt(x,y,radiusFor(id));
+  redraw(); renderTargets(); updateReady(); renderZoom();
+}
+view.addEventListener("click",ev=>{
   if(!S.work) return;
-  if(ev.pointerType!=="mouse") loupe.style.display="none";
-  const c=imgCoords(ev), id=S.active;
-  c.x=clamp(c.x,0,S.W-1); c.y=clamp(c.y,0,S.H-1);
-  S.pts[id]={x:c.x,y:c.y};
-  S.rgb[id]=sampleAt(c.x,c.y,radiusFor(id));
-  const next=["skin","eyes","hair"].find(k=>!S.pts[k] && !(k==="hair" && S.dyed==="no"));
-  if(next) S.active=next;
-  redraw(); renderTargets(); updateReady();
-  toast({skin:"Piel marcada",eyes:"Ojos marcados",hair:"Pelo marcado",white:"Blanco marcado"}[id]);
+  const c=imgCoords(ev); placePoint(S.active,c.x,c.y);
+  if(window.matchMedia("(max-width:820px)").matches) $("zoom").scrollIntoView({behavior:"smooth",block:"nearest"});
+});
+zoomCv.addEventListener("click",ev=>{
+  const id=S.active, p=S.pts[id]; if(!p) return;
+  const r=zoomCv.getBoundingClientRect(), src=zoomSrc(id);
+  placePoint(id, p.x+((ev.clientX-r.left)/r.width-0.5)*src, p.y+((ev.clientY-r.top)/r.height-0.5)*src);
+});
+$("zNext").addEventListener("click",()=>{
+  const go=$("zNext").dataset.go;
+  if(go==="analyze"){ $("analyze").click(); return; }
+  if(go==="missing"){ $("missing").scrollIntoView({behavior:"smooth",block:"center"}); return; }
+  S.active=go; renderTargets(); renderZoom();
+  $("targets").scrollIntoView({behavior:"smooth",block:"start"});
 });
 
 function renderTargets(){
@@ -237,13 +259,14 @@ function renderTargets(){
     const b=document.createElement("button"); b.type="button"; b.className="target"+(S.active===t.id?" active":"");
     b.setAttribute("aria-pressed",S.active===t.id);
     const set=!!S.rgb[t.id], skipHair=t.id==="hair" && S.dyed==="no";
-    const state= S.active===t.id ? "Midiendo ahora" : set ? "Listo ✓" : skipHair ? "No hace falta" : (t.opt?"Opcional":"Falta");
+    const state= S.active===t.id ? (set?"Seleccionado ✓":"Toque en la foto") : set ? "Listo ✓" : skipHair ? "No hace falta" : (t.opt?"Opcional":"Falta");
     b.innerHTML=`<span class="dot${set?" set":""}" style="${set?"background:"+hex(S.rgb[t.id]):""}"></span><span><strong>${t.label}</strong><small>${state}</small></span>`;
-    b.addEventListener("click",()=>{ S.active=t.id; renderTargets(); });
+    b.addEventListener("click",()=>{ S.active=t.id; renderTargets(); renderZoom(); });
     box.appendChild(b);
   });
   const t=TARGETS.find(x=>x.id===S.active);
   $("targetHint").innerHTML=`<b>${t.label}${t.opt?" (opcional)":""}:</b> ${t.id==="hair"&&S.dyed==="no"?"No hace falta: usamos tu color natural.":t.hint}`;
+  const ph=$("photoHint"); if(ph) ph.textContent= S.pts[t.id] ? "Otro toque en la foto mueve el círculo." : "Un toque en la foto marca el punto.";
 }
 
 /* Preguntas */
@@ -274,8 +297,11 @@ function updateReady(){
   if(S.dyed==="no"){ if(S.natural===null) miss.push("tu color de pelo natural"); }
   else if(!S.rgb.hair) miss.push("pelo");
   $("analyze").disabled=miss.length>0;
+  document.querySelector(".sticky-cta").classList.toggle("ready",miss.length===0);
   $("missing").textContent= miss.length? "Falta marcar: "+miss.join(", ")+"." : "";
+  if(S.pts[S.active] && !$("zoom").hidden) renderZoomBtnOnly();
 }
+function renderZoomBtnOnly(){ try{ renderZoom(); }catch(e){} }
 
 $("changePhoto").addEventListener("click",()=>file.click());
 
