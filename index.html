@@ -76,6 +76,18 @@
   .photo{position:relative;touch-action:manipulation}
   .photo{display:flex;justify-content:center}
   .photo canvas#view{display:block;max-width:100%;max-height:62vh;width:auto;height:auto;cursor:crosshair;border-radius:12px;background:#EEE}
+  .mark-grid{grid-template-areas:"left zoom" "left questions" "change questions";grid-template-rows:auto 1fr auto;row-gap:0}
+  .change-col{grid-area:change;margin-top:12px}
+  .mark-left{grid-area:left}
+  .zoom-col{grid-area:zoom;position:sticky;top:16px;z-index:2}
+  .questions{grid-area:questions}
+  .zoom-col .zoom{margin-top:0;margin-bottom:20px}
+  @media (max-width:820px){
+    .mark-grid{grid-template-areas:"left" "zoom" "change" "questions";grid-template-rows:auto}
+    .change-col{margin:0 0 20px}
+    .zoom-col{position:static}
+    .zoom-col .zoom{margin:12px 0 0}
+  }
   .photo-hint{text-align:center;margin:8px 0 0}
   .zoom{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center;margin-top:12px;padding:14px;border:1px solid var(--accent);background:var(--accent-soft);border-radius:14px}
   .zoom[hidden]{display:none}
@@ -231,14 +243,19 @@
   <section class="card hidden" id="s2" aria-labelledby="s2t">
     <h2 id="s2t">Marcar tus colores</h2>
     <p class="hint">Son tres toques: piel, ojos y pelo. Después de cada uno aparece una vista ampliada para chequear que el círculo quedó en el lugar justo.</p>
-    <div class="grid2">
-      <div>
+    <div class="grid2 mark-grid">
+      <div class="mark-left">
         <div class="targets" id="targets" role="group" aria-label="Qué medir"></div>
         <p class="target-hint" id="targetHint" aria-live="polite"></p>
         <div class="photo" id="photo">
           <canvas id="view" aria-label="Tu foto. Tocá sobre ella para tomar el color seleccionado."></canvas>
         </div>
         <p class="hint photo-hint" id="photoHint" aria-live="polite"></p>
+      </div>
+      <div class="actions change-col">
+        <button class="btn ghost" id="changePhoto" type="button">Cambiar foto</button>
+      </div>
+      <div class="zoom-col">
         <div class="zoom" id="zoom" hidden>
           <canvas id="zoomCv" width="360" height="360" aria-label="Vista ampliada del punto marcado. Un toque acá ajusta el punto."></canvas>
           <div class="zoom-info">
@@ -246,9 +263,6 @@
             <p class="hint" id="zText" style="margin:0"></p>
           </div>
           <button class="btn zoom-next" id="zNext" type="button"></button>
-        </div>
-        <div class="actions" style="margin-top:12px">
-          <button class="btn ghost" id="changePhoto" type="button">Cambiar foto</button>
         </div>
       </div>
       <div class="questions">
